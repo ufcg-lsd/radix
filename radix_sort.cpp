@@ -75,7 +75,7 @@ int main() {
         cout << "10 primeiros numeros do dataset: ";
         for (int i = 0; i < 10; i++)
             cout << data[i] << " ";
-        cout << '\n';;
+        cout << '\n';
 
 
         auto copy1 = data;
@@ -90,10 +90,6 @@ int main() {
         sort(copy2.begin(), copy2.end());
         end = high_resolution_clock::now();
         double stdsort_time = duration_cast<duration<double>>(end - start).count();
-
-        for (int i = 0; i < 20; i++) 
-            cout << copy1[i] << " ";
-        cout << endl;
 
         bool correct = (copy1 == copy2);
 
