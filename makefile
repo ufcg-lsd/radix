@@ -1,36 +1,30 @@
-# Compiler
+.PHONY: all clean build run_radix_sort run_radix_sort_opt
+
 CXX = g++
+CFLAGS = -std=c++17 -Wall
+CFLAGS_OPT = -std=c++17 -O3 -march=native -Wall
 
-# Compiler flags
-OPT_FLAGS = -std=c++17 -O3 -march=native -Wall
-DEFAULT_FLAGS = -std=c++17 -Wall
+SRC = src/radix_sort.cpp
+TEST = tests/test_radix_sort.cpp
 
-# Targets
-TARGET_OPT = radix_sort_opt
-TARGET_NONOPT = radix_sort_non_opt
+BUILD_TARGETS = tests/radix_sort tests/radix_sort_opt
 
-# Source file
-SOURCE = radix_sort.cpp
+all: build
 
-# Build both
-all: $(TARGET_OPT) $(TARGET_NONOPT)
+build: $(BUILD_TARGETS)
 
-# Optimized build
-$(TARGET_OPT): $(SOURCE)
-	$(CXX) $(OPT_FLAGS) -o $(TARGET_OPT) $(SOURCE)
+tests/radix_sort: $(SRC) $(TEST)
+	$(CXX) $(CFLAGS) $^ -o $@
 
-# Non-optimized build
-$(TARGET_NONOPT): $(SOURCE)
-	$(CXX) $(DEFAULT_FLAGS) -o $(TARGET_NONOPT) $(SOURCE)
+tests/radix_sort_opt: $(SRC) $(TEST)
+	$(CXX) $(CFLAGS_OPT) $^ -o $@
 
-# Run optimized
-run-opt: $(TARGET_OPT)
-	./$(TARGET_OPT)
+radix_sort:
+	./tests/radix_sort
 
-# Run non-optimized
-run-nonopt: $(TARGET_NONOPT)
-	./$(TARGET_NONOPT)
+radix_sort_opt:
+	./tests/radix_sort_opt
 
 clean:
-	rm -rf $(TARGET_OPT) $(TARGET_NONOPT)
+	rm -f tests/radix_sort tests/radix_sort_opt
 
