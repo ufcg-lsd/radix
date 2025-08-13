@@ -9,6 +9,26 @@
 using namespace std;
 using namespace std::chrono;
 
+const double EPS = 1e-9;        // a very small number
+
+bool approx_equal(double x, double y) {
+    return fabs(x - y) < EPS;
+}
+
+bool is_sorted(vector<double> vec, vector<double> sorted) {
+    if (vec.size() != sorted.size()) {
+        return false;
+    }
+
+    for (int i = 0; i < vec.size(); ++i) {
+        if (!approx_equal(vec[i], sorted[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int main() {
     vector<int> sizes = {10, 1000, 1000000, 5000000, 10000000};
 
@@ -41,13 +61,13 @@ int main() {
         end = high_resolution_clock::now();
         double stdsort_time = duration_cast<duration<double>>(end - start).count();
 
-        bool is_sorted = copy1 == copy2;
+        bool ok = is_sorted(copy1, copy2);
         string winner = (radix_time < stdsort_time) ? "Radix Sort" : "std::sort";
 
         cout << "N = " << n << "\n";
         cout << "Radix Sort: " << radix_time << " s\n";
         cout << "std::sort:  " << stdsort_time << " s\n";
-        cout << "Is sorted? " << (is_sorted ? "Yes" : "No") << "\n";
+        cout << "Is sorted? " << (ok ? "Yes" : "No") << "\n";
         cout << "Winner: " << winner << "\n\n";
     }
 
