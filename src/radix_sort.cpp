@@ -26,7 +26,7 @@ struct RadixBuffers {
 
 };
 
-uint64_t double_to_byte(double num) {
+inline uint64_t double_to_byte(double num) {
 
     uint64_t byt;
     memcpy(&byt, &num, sizeof(double));
