@@ -4,7 +4,6 @@ CXX = g++
 INCLUDES = -I./src
 CXXFLAGS = -std=c++17 -O3 -march=native -Wall $(INCLUDES)
 
-
 APP_BIN = sorter
 APP_SRC = src/main.cpp src/external_sort.cpp src/radix_sort.cpp
 
@@ -20,8 +19,6 @@ $(APP_BIN): $(APP_SRC)
 
 $(BENCH_BIN): $(BENCH_SRC)
 	$(CXX) $(CXXFLAGS) $(BENCH_SRC) -o $@
-
-# --- Comandos Úteis ---
 
 run_bench_old: $(BENCH_BIN)
 	./$(BENCH_BIN)
