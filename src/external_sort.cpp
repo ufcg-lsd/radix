@@ -8,8 +8,8 @@
 #include <string>
 #include<vector>
 
-#include "../src/external_sort.h"
-#include "../src/radix_sort.h"
+#include "external_sort.h"
+#include "radix_sort.h"
 
 using namespace std;
 using external_sort::SortStrategy;
