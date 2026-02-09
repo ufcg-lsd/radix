@@ -29,7 +29,7 @@ inline uint64_t double_to_uint64(double num) {
     return (byt & MSB_MASK) ? ~byt : byt ^ MSB_MASK;
 }
 
-void radix_sort::radix_sort(vector<double> &arr) {
+void radix_sort::RadixSort(vector<double> &arr) {
     int n = (int) arr.size();
 
     if (n < 2) {
