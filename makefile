@@ -42,4 +42,4 @@ test:
 clean:
 	rm -f $(BIN_RADIX) $(BIN_RADIX_OPT)
 	rm -rf $(BUILD_DIR)
-	rm -f run_tests # Caso tenha sobrado algum antigo
+	rm -f run_tests 
