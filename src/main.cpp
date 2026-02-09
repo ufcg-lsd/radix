@@ -60,14 +60,14 @@ int main(int argc, char* argv[]) {
     SortStrategy strategy = (sort_strategy == "radix") 
         ? SortStrategy::RADIX_SORT : SortStrategy::STD_SORT;
 
-    auto start = chrono::high_resolution_clock::now();
+    auto start = chrono::steady_clock::now();
 
     ExternalSort sorter(input_file, output_file,
             memory_MB, strategy);
 
     sorter.Run();
 
-    auto end = chrono::high_resolution_clock::now();
+    auto end = chrono::steady_clock::now();
     chrono::duration<double> diff = end - start;
 
     // I dont like endls ;)
