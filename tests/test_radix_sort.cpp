@@ -5,6 +5,7 @@
 #include <chrono>
 #include <random>
 #include <cmath>
+#include <algorithm>
 
 using namespace std;
 using namespace std::chrono;
@@ -20,7 +21,7 @@ bool is_sorted(vector<double> vec, vector<double> sorted) {
         return false;
     }
 
-    for (int i = 0; i < vec.size(); ++i) {
+    for (int i = 0; i < (int) vec.size(); ++i) {
         if (!approx_equal(vec[i], sorted[i])) {
             return false;
         }
@@ -52,7 +53,7 @@ int main() {
         auto copy2 = data;
         
         auto start = high_resolution_clock::now();
-        radix_sort(copy1);
+        radix_sort::radix_sort(copy1);
         auto end = high_resolution_clock::now();
         double radix_time = duration_cast<duration<double>>(end - start).count();
 
