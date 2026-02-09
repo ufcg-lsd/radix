@@ -5,7 +5,7 @@ CFLAGS = -std=c++17 -Wall
 CFLAGS_OPT = -std=c++17 -O3 -march=native -Wall
 
 SRC = src/radix_sort.cpp
-TEST = tests/test_radix_sort.cpp
+TEST = tests/benchmark.cpp
 
 BUILD_TARGETS = tests/radix_sort tests/radix_sort_opt
 
@@ -24,6 +24,10 @@ radix_sort:
 
 radix_sort_opt:
 	./tests/radix_sort_opt
+
+test:
+	g++ tests/radix_sort_tests.cpp src/radix_sort.cpp -o run_tests -lgtest -lgtest_main -pthread -I src/
+	./run_tests
 
 clean:
 	rm -f tests/radix_sort tests/radix_sort_opt
