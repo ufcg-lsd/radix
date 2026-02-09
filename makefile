@@ -4,8 +4,8 @@ CXX = g++
 CFLAGS = -std=c++17 -Wall
 CFLAGS_OPT = -std=c++17 -O3 -march=native -Wall
 
-SRC = src/radix_sort.cpp
-BENCHMARK_SRC = tests/benchmark.cpp 
+SRC = src/radix_sort.cpp src/external_sort.cpp
+RADIX_SORT_BENCHMARK = tests/benchmark.cpp 
 
 BUILD_DIR = build
 
@@ -16,10 +16,10 @@ all: build
 
 build: $(BIN_RADIX) $(BIN_RADIX_OPT)
 
-$(BIN_RADIX): $(SRC) $(BENCHMARK_SRC)
+$(BIN_RADIX): $(SRC) $(RADIX_SORT_BENCHMARK)
 	$(CXX) $(CFLAGS) $^ -o $@
 
-$(BIN_RADIX_OPT): $(SRC) $(BENCHMARK_SRC)
+$(BIN_RADIX_OPT): $(SRC) $(RADIX_SORT_BENCHMARK)
 	$(CXX) $(CFLAGS_OPT) $^ -o $@
 
 # Benchmarks
