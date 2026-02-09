@@ -99,9 +99,9 @@ def plot_results(df, x_col, filename, title, xlabel):
         subset = df[df['algorithm'] == algo]
         plt.plot(subset[x_col], subset['time_sec'], marker='o', label=f'{algo}')
     
-    plt.title(f"{title} - Tempo Total")
+    plt.title(f"{title} - Total Time")
     plt.xlabel(xlabel)
-    plt.ylabel("Segundos (menor é melhor)")
+    plt.ylabel("Seconds (s)")
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.legend()
     
