@@ -1,45 +1,38 @@
-.PHONY: all clean build radix_sort radix_sort_opt test clean_test
+.PHONY: all clean run_bench test
 
 CXX = g++
-CFLAGS = -std=c++17 -Wall
-CFLAGS_OPT = -std=c++17 -O3 -march=native -Wall
+INCLUDES = -I./src
+CXXFLAGS = -std=c++17 -O3 -march=native -Wall $(INCLUDES)
 
-SRC = src/radix_sort.cpp
-BENCHMARK_SRC = tests/benchmark.cpp 
+
+APP_BIN = sorter
+APP_SRC = src/main.cpp src/external_sort.cpp src/radix_sort.cpp
+
+BENCH_BIN = tests/radix_benchmark
+BENCH_SRC = tests/benchmark.cpp src/radix_sort.cpp
 
 BUILD_DIR = build
 
-BIN_RADIX = tests/radix_sort
-BIN_RADIX_OPT = tests/radix_sort_opt
+all: $(APP_BIN) $(BENCH_BIN)
 
-all: build
+$(APP_BIN): $(APP_SRC)
+	$(CXX) $(CXXFLAGS) $(APP_SRC) -o $@
 
-build: $(BIN_RADIX) $(BIN_RADIX_OPT)
+$(BENCH_BIN): $(BENCH_SRC)
+	$(CXX) $(CXXFLAGS) $(BENCH_SRC) -o $@
 
-$(BIN_RADIX): $(SRC) $(BENCHMARK_SRC)
-	$(CXX) $(CFLAGS) $^ -o $@
+# --- Comandos Úteis ---
 
-$(BIN_RADIX_OPT): $(SRC) $(BENCHMARK_SRC)
-	$(CXX) $(CFLAGS_OPT) $^ -o $@
+run_bench_old: $(BENCH_BIN)
+	./$(BENCH_BIN)
 
-# Benchmarks
-radix_sort: $(BIN_RADIX)
-	./$(BIN_RADIX)
-
-radix_sort_opt: $(BIN_RADIX_OPT)
-	./$(BIN_RADIX_OPT)
-
-# CMake Wrapper
 test:
-	@echo "Configuring CMake..."
 	@mkdir -p $(BUILD_DIR)
 	@cd $(BUILD_DIR) && cmake ..
-	@echo "Compiling unit tests..."
-	@cd $(BUILD_DIR) && make
-	@echo "Executing unit tests..."
+	@cd $(BUILD_DIR) && make -j$(shell nproc)
 	@./$(BUILD_DIR)/run_tests
 
 clean:
-	rm -f $(BIN_RADIX) $(BIN_RADIX_OPT)
+	rm -f $(APP_BIN) $(BENCH_BIN)
 	rm -rf $(BUILD_DIR)
-	rm -f run_tests 
+	rm -f *.bin *.dat *.png results/*.png results/*.csv
