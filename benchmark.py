@@ -31,6 +31,7 @@ SCENARIO_MEMORY = [50, 100, 200, 500, 1000]
 
 ALGOS = ["std", "radix"]
 
+
 def compile_cpp():
     """Calls the root Makefile to ensure the binary exists and is up to date."""
     print("Checking compilation...")
@@ -40,6 +41,7 @@ def compile_cpp():
     except subprocess.CalledProcessError:
         print("Compilation error via Makefile. :(")
         exit(1)
+
 
 def generate_data(size_mb):
     """Generates a binary file if it doesn't exist or has the wrong size."""
@@ -62,11 +64,13 @@ def generate_data(size_mb):
             f.write(struct.pack(f'{batch}d', *data))
             remaining -= batch
 
+
 def parse_time(output):
     """Parses execution time from the C++ main.cpp output."""
     # Search for execution time X s in main.cpp output
     match = re.search(r"Execution time:\s*([0-9.]+)", output)
     return float(match.group(1)) if match else None 
+
 
 def run_test(size_mb, mem_mb, algo):
     """Runs the ./sorter executable.""" 
@@ -87,6 +91,7 @@ def run_test(size_mb, mem_mb, algo):
     except subprocess.CalledProcessError as e:
         print(f"Error executing {algo}: {e.stderr}")
         return None, None
+
 
 def plot_results(df, x_col, filename, title, xlabel):
     """Generates and saves plots to the results/ directory."""
@@ -120,6 +125,36 @@ def plot_results(df, x_col, filename, title, xlabel):
     plt.tight_layout()
     plt.savefig(filepath)
     print(f"Plot saved: {filepath}")
+
+
+def plot_improvement_percentage(df, x_col, filename):
+    filepath = os.path.join(RESULTS_DIR, filename)
+
+    df_scale = df.copy()
+    pivot_df = df_scale.pivot(index=x_col, columns='algorithm', values='time_sec')
+
+    # Compute percentage improvement
+    pivot_df['improvement'] = ((pivot_df['std'] - pivot_df['radix']) / pivot_df['std']) * 100
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(pivot_df.index, pivot_df['improvement'], 
+             marker='D', color='#2ca02c', linewidth=2.5, label='Performance Gain (Radix vs Std)')
+
+    for x, y in zip(pivot_df.index, pivot_df['improvement']):
+        plt.annotate(f'{y:.1f}%', (x, y), textcoords="offset points", 
+                     xytext=(0,12), ha='center', weight='bold', color='#1a5e1a')
+
+    plt.title("Efficiency Analysis of Radix Sort", fontsize=14, pad=20)
+    plt.xlabel("File Size (MB)", fontsize=12)
+    plt.ylabel("Performance Improvement (%)", fontsize=12)
+    
+    plt.ylim(0, max(pivot_df['improvement']) * 1.3) 
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend(loc='upper left')
+    
+    plt.tight_layout()
+    plt.savefig(filepath)
+
 
 def main():
     compile_cpp()
@@ -158,16 +193,19 @@ def main():
 
     print(f"\n **DATA SAVED IN** {RESULTS_CSV}")
 
-    if not df.empty:
-        df_scale = df[df['scenario'] == 'scalability']
-        if not df_scale.empty:
-            plot_results(df_scale, 'file_size_mb', 'plot_scalability.png', 
-                        'Scalability', 'File Size (MB)')
+    if df.empty:
+        raise RuntimeError("Result dataframe is empty.")
 
-        df_mem = df[df['scenario'] == 'memory_impact']
-        if not df_mem.empty:
-            plot_results(df_mem, 'memory_mb', 'plot_memory_impact.png', 
-                        'Memory Impact', 'Memory Limit (MB)')
+    df_scale = df[df['scenario'] == 'scalability']
+    if not df_scale.empty:
+        plot_results(df_scale, 'file_size_mb', 'plot_scalability.png', 
+                    'Scalability', 'File Size (MB)')
+        plot_improvement_percentage(df_scale, 'file_size_mb', 'plot_relative_gain.png')
+
+    df_mem = df[df['scenario'] == 'memory_impact']
+    if not df_mem.empty:
+        plot_results(df_mem, 'memory_mb', 'plot_memory_impact.png', 
+                    'Memory Impact', 'Memory Limit (MB)')
 
     if os.path.exists(INPUT_FILENAME): 
         os.remove(INPUT_FILENAME)
