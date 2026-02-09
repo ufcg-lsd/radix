@@ -49,7 +49,6 @@ int main(int argc, char* argv[]) {
         try {
             memory_MB = stod(argv[3]);
         } catch (...) {
-            cerr << "Erro: O argumento de memória deve ser um número.\n";
             return 1;
         }
     }
