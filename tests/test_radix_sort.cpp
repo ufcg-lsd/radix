@@ -53,7 +53,7 @@ int main() {
         auto copy2 = data;
         
         auto start = high_resolution_clock::now();
-        radix_sort::radix_sort(copy1);
+        radix_sort::RadixSort(copy1);
         auto end = high_resolution_clock::now();
         double radix_time = duration_cast<duration<double>>(end - start).count();
 
