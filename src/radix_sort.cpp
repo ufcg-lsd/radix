@@ -29,6 +29,15 @@ inline uint64_t double_to_uint64(double num) {
     return (byt & MSB_MASK) ? ~byt : byt ^ MSB_MASK;
 }
 
+inline double uint64_to_double(uint64_t num) {
+    // Converts uint64_t back to double
+    uint64_t byt = (num & MSB_MASK) ? num ^ MSB_MASK : ~num;
+
+    double res;
+    memcpy(&res, &byt, sizeof(double));
+    return res;
+}
+
 void radix_sort::RadixSort(vector<double> &arr) {
     int n = (int) arr.size();
 
@@ -36,39 +45,39 @@ void radix_sort::RadixSort(vector<double> &arr) {
         return;
     }
 
-    // Temporary buffer to store sorted bytes
-    vector<double> temp_buffer(arr.size());
-        
-    vector<double> *src = &arr;
-    vector<double> *dest = &temp_buffer;
+    vector<uint64_t> keys(n);
+    for (int i = 0; i < n; i++) {
+        keys[i] = double_to_uint64(arr[i]);
+    }
+
+    vector<uint64_t> temp_buffer(arr.size());
+    vector<uint64_t> *src = &keys;
+    vector<uint64_t> *dest = &temp_buffer;
 
     for (int p = 0; p < NUM_PASSES; p++) {
-        // Compute frequency of each element
-        size_t count[RADIX];
-        memset(count, 0, sizeof(count));
+        size_t count[RADIX] = {0};
+        
+        int shift = p << BITS_PER_BYTE_SHIFT;
+
+        // Prefix sum to compute offset
         for (int i = 0; i < n; i++) {
-            uint64_t byte_val = double_to_uint64((*src)[i]);
-            int byte_idx = (byte_val >> (p << BITS_PER_BYTE_SHIFT)) & BYTE_MASK;
+            int byte_idx = ((*src)[i] >> shift) & BYTE_MASK;
             count[byte_idx]++;
         }
-
-        // Compute offset
         for (int i = 1; i < RADIX; i++) {
             count[i] += count[i - 1];
         }
 
+        // Place number in the current spot
         for (int i = n - 1; i >= 0; i--) {
-            uint64_t byte_val = double_to_uint64((*src)[i]);
-                
-            int byte_idx = (byte_val >> (p << BITS_PER_BYTE_SHIFT)) & BYTE_MASK;
-            int pos = --count[byte_idx];
-            (*dest)[pos] = (*src)[i];
+            int byte_idx = ((*src)[i] >> shift) & BYTE_MASK;
+            (*dest)[--count[byte_idx]] = (*src)[i];
         }
 
         swap(src, dest);
     }
-
-    if (src != &arr) {
-        arr = move(*src);
+    
+    for (int i = 0; i < n; i++) {
+        arr[i] = uint64_to_double((*src)[i]);
     }
 }
