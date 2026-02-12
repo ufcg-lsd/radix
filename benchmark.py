@@ -6,6 +6,8 @@ import random
 import re
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
 
 EXECUTABLE = "./sorter"     
 
@@ -29,7 +31,11 @@ FIXED_MEMORY = 100
 FIXED_FILE_SIZE = 500                  
 SCENARIO_MEMORY = [50, 100, 200, 500, 1000] 
 
+# Sorting algorithms
 ALGOS = ["std", "radix"]
+
+# Number of times we are running the experiment
+NUM_RUNS = 5 
 
 
 def compile_cpp():
@@ -44,30 +50,30 @@ def compile_cpp():
 
 
 def generate_data(size_mb):
-    """Generates a binary file if it doesn't exist or has the wrong size."""
-    expected_size = size_mb * 1024 * 1024
-    if os.path.exists(INPUT_FILENAME) and os.path.getsize(INPUT_FILENAME) == expected_size:
-        return 
+    """This function generates random data for the tests."""
+    expected_size = size_mb * 1024 ** 2
+
+    if os.path.exists(INPUT_FILENAME):
+        if os.path.getsize(INPUT_FILENAME) == expected_size:
+            return
+        
+        os.remove(INPUT_FILENAME)
     
     print(f"Generating {size_mb} MB dataset in {DATA_DIR}...")
-    if os.path.exists(INPUT_FILENAME): 
-        os.remove(INPUT_FILENAME)
 
-    num_integers = expected_size // 8
     chunk_size = 1_000_000
-
+    num_elements = expected_size // 8
+    remaining = num_elements
     with open(INPUT_FILENAME, "wb") as f:
-        remaining = num_integers
         while remaining > 0:
-            batch = min(chunk_size, remaining)
-            data = [random.uniform(-1e9, 1e9) for _ in range(batch)]
-            f.write(struct.pack(f'{batch}d', *data))
-            remaining -= batch
+            batch_size = min(chunk_size, remaining)
+            data = [random.uniform(-1e9, 1e9) for _ in range(batch_size)]
+            f.write(struct.pack(f"{batch_size}d", *data))
+            remaining -= batch_size
 
 
 def parse_time(output):
-    """Parses execution time from the C++ main.cpp output."""
-    # Search for execution time X s in main.cpp output
+    """Extract execution time from the C++ main.cpp output."""
     match = re.search(r"Execution time:\s*([0-9.]+)", output)
     return float(match.group(1)) if match else None 
 
@@ -83,7 +89,7 @@ def run_test(size_mb, mem_mb, algo):
         
         if time_taken is None:
             print(f"Failed to parse time. Output: {result.stdout}")
-            return None
+            return None, None
             
         throughput = size_mb / time_taken # MB/s
         return time_taken, throughput
@@ -93,124 +99,162 @@ def run_test(size_mb, mem_mb, algo):
         return None, None
 
 
-def plot_results(df, x_col, filename, title, xlabel):
-    """Generates and saves plots to the results/ directory."""
-    filepath = os.path.join(RESULTS_DIR, filename)
-    plt.figure(figsize=(12, 5))
-    
-    # Plot 1: Execution Time
-    plt.subplot(1, 2, 1)
-    for algo in ALGOS:
-        subset = df[df['algorithm'] == algo]
-        plt.plot(subset[x_col], subset['time_sec'], marker='o', label=f'{algo}')
-    
-    plt.title(f"{title} - Total Time")
-    plt.xlabel(xlabel)
-    plt.ylabel("Seconds (s)")
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.legend()
-    
-    # Plot 2: I/O Throughput
-    plt.subplot(1, 2, 2)
-    for algo in ALGOS:
-        subset = df[df['algorithm'] == algo]
-        plt.plot(subset[x_col], subset['throughput_mbs'], marker='s', linestyle='--', label=f'{algo}')
-        
-    plt.title(f"{title} - I/O Throughput")
-    plt.xlabel(xlabel)
-    plt.ylabel("MB/s (Higher is better)")
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.legend()
-    
-    plt.tight_layout()
-    plt.savefig(filepath)
-    print(f"Plot saved: {filepath}")
-
-
-def plot_improvement_percentage(df, x_col, filename):
-    filepath = os.path.join(RESULTS_DIR, filename)
-
-    df_scale = df.copy()
-    pivot_df = df_scale.pivot(index=x_col, columns='algorithm', values='time_sec')
-
-    # Compute percentage improvement
-    pivot_df['improvement'] = ((pivot_df['std'] - pivot_df['radix']) / pivot_df['std']) * 100
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(pivot_df.index, pivot_df['improvement'], 
-             marker='D', color='#2ca02c', linewidth=2.5, label='Performance Gain (Radix vs Std)')
-
-    for x, y in zip(pivot_df.index, pivot_df['improvement']):
-        plt.annotate(f'{y:.1f}%', (x, y), textcoords="offset points", 
-                     xytext=(0,12), ha='center', weight='bold', color='#1a5e1a')
-
-    plt.title("Efficiency Analysis of Radix Sort", fontsize=14, pad=20)
-    plt.xlabel("File Size (MB)", fontsize=12)
-    plt.ylabel("Performance Improvement (%)", fontsize=12)
-    
-    plt.ylim(0, max(pivot_df['improvement']) * 1.3) 
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.legend(loc='upper left')
-    
-    plt.tight_layout()
-    plt.savefig(filepath)
-
-
-def main():
-    compile_cpp()
-    results = []
-    
+def run_scalability():
+    """Varies file size with fixed memory."""
     print("\n--- TEST 1: SCALABILITY (Increasing File Size) ---")
+
+    results = []
     for size in SCENARIO_SIZES:
         generate_data(size)
         for algo in ALGOS:
-            print(f"-> Size={size}MB | Algo={algo}...", end=" ", flush=True)
-            t, tp = run_test(size, FIXED_MEMORY, algo)
-            if t:
-                print(f"OK! {t:.2f}s ({tp:.0f} MB/s)")
-                results.append({
-                    "scenario": "scalability", "file_size_mb": size,
-                    "memory_mb": FIXED_MEMORY, "algorithm": algo,
-                    "time_sec": t, "throughput_mbs": tp
-                })
-    
-    print("\n--- TEST 2: MEMORY IMPACT (Fixed 500MB File) ---") 
-    generate_data(FIXED_FILE_SIZE) 
+            stats_res = run_batch_execution("scalability", size, FIXED_MEMORY, algo)
+            if stats_res:
+                results.append(stats_res)
+
+    return results
+
+
+def run_memory_impact():
+    """Varies memory limit with fixed file size."""
+    print("\n--- TEST 2: MEMORY IMPACT (Fixed 500MB File) ---")
+
+    generate_data(FIXED_FILE_SIZE)
+    results = []
     for mem in SCENARIO_MEMORY:
         for algo in ALGOS:
-            print(f"-> Mem={mem}MB | Algo={algo}...", end=" ", flush=True)
-            t, tp = run_test(FIXED_FILE_SIZE, mem, algo)
-            if t:
-                print(f"OK! {t:.2f}s ({tp:.0f} MB/s)")
-                results.append({
-                    "scenario": "memory_impact", "file_size_mb": FIXED_FILE_SIZE,
-                    "memory_mb": mem, "algorithm": algo,
-                    "time_sec": t, "throughput_mbs": tp
-                })
+            stats_res = run_batch_execution("memory_impact", FIXED_FILE_SIZE, mem, algo)
+            if stats_res:
+                results.append(stats_res)
 
-    df = pd.DataFrame(results)
+    return results
+
+
+def run_batch_execution(scenario, size_mb, mem_mb, algo):
+    """Runs N times and returns mean and standard deviation."""
+    print(f"  -> {algo.upper()}: [Size={size_mb}MB, Mem={mem_mb}MB]:")
+    
+    times = []
+    for run_idx in range(NUM_RUNS):
+        time_taken, throughput = run_test(size_mb, mem_mb, algo)
+        if time_taken is not None:
+            times.append(time_taken)
+            print(f"    Run {run_idx + 1}/{NUM_RUNS}: {time_taken:.3f}s (Throughput: {throughput:.2f} MB/s)")
+    
+    mean = np.mean(times)
+    std = np.std(times, ddof=1)
+    
+    # Calculation for 95% Confidence Interval
+    t_crit = stats.t.ppf(0.975, len(times) - 1)
+    ci = t_crit * (std / np.sqrt(len(times)))
+    
+    print(" Done.")
+    return {
+        "scenario": scenario,
+        "file_size_mb": size_mb,
+        "memory_mb": mem_mb,
+        "algorithm": algo,
+        "time_mean": mean,
+        "time_std": std,
+        "time_ci": ci,
+        "throughput_mean": size_mb / mean
+    }
+
+
+def plot_efficiency(df, x_col, filename, title):
+    """Plots percentage gain of Radix vs Std based on mean times."""
+    plt.figure(figsize=(10, 6))
+    
+    pivot = df.pivot(index=x_col, columns='algorithm', values='time_mean')
+    pivot['gain'] = ((pivot['std'] - pivot['radix']) / pivot['std']) * 100
+    
+    plt.plot(pivot.index, pivot['gain'], marker='D', color='green', linewidth=2)
+    
+    for x, y in zip(pivot.index, pivot['gain']):
+        plt.annotate(f'{y:.1f}%', (x, y), textcoords="offset points", 
+                     xytext=(0,10), ha='center', weight='bold')
+
+    plt.title(title)
+    plt.xlabel(x_col.replace('_', ' ').title())
+    plt.ylabel("Performance Gain (%)")
+    plt.grid(True, linestyle='--', alpha=0.7)
+    
+    path = os.path.join(RESULTS_DIR, filename)
+    plt.savefig(path)
+    plt.close()
+
+
+def plot_execution_times(df, x_col, filename, title, xlabel):
+    """
+    Plots absolute time with a 95% Confidence Interval shaded area.
+    Matches the visual style of the provided reference.
+    """
+    plt.figure(figsize=(8, 6))
+    
+    # Colors matching your image: blue for std, orange for radix
+    colors = {'std': '#1f77b4', 'radix': '#ff7f0e'}
+    
+    for algo in ALGOS:
+        subset = df[df['algorithm'] == algo].sort_values(by=x_col)
+        x = subset[x_col]
+        y = subset['time_mean']
+        ci = subset['time_ci']
+
+        # Main line with markers
+        plt.plot(x, y, marker='o', label=algo, color=colors[algo], linewidth=2)
+        
+        # Shaded Confidence Interval
+        plt.fill_between(x, (y - ci), (y + ci), color=colors[algo], alpha=0.15)
+
+    plt.title(title, fontsize=13, fontweight='bold')
+    plt.xlabel(xlabel, fontsize=11)
+    plt.ylabel("Seconds (s)", fontsize=11)
+    
+    # Grid matching the reference image style
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(RESULTS_DIR, filename), dpi=300)
+    plt.close()
+
+
+def run_benchmark():
+    res_scale = run_scalability()
+    res_mem = run_memory_impact()
+    
+    df = pd.DataFrame(res_scale + res_mem)
     df.to_csv(RESULTS_CSV, index=False)
-
-    print(f"\n **DATA SAVED IN** {RESULTS_CSV}")
+    print(f"\n[DATA] Results saved to {RESULTS_CSV}")
 
     if df.empty:
-        raise RuntimeError("Result dataframe is empty.")
-
+        raise RuntimeError("Error while executing the benchmark.")
+    
+    # Analysis for Scenario 1
     df_scale = df[df['scenario'] == 'scalability']
     if not df_scale.empty:
-        plot_results(df_scale, 'file_size_mb', 'plot_scalability.png', 
-                    'Scalability', 'File Size (MB)')
-        plot_improvement_percentage(df_scale, 'file_size_mb', 'plot_relative_gain.png')
+        plot_execution_times(df_scale, 'file_size_mb', 'scalability_time.png', 
+                             'Scalability - Total Time (95% CI)', 'File Size (MB)')
+        plot_efficiency(df_scale, 'file_size_mb', 'efficiency_scalability.png', 
+                        'Radix Sort Speedup vs Input Size')
 
+    # Analysis for Scenario 2
     df_mem = df[df['scenario'] == 'memory_impact']
     if not df_mem.empty:
-        plot_results(df_mem, 'memory_mb', 'plot_memory_impact.png', 
-                    'Memory Impact', 'Memory Limit (MB)')
-
+        plot_execution_times(df_mem, 'memory_mb', 'memory_time.png', 
+                            'Memory Impact - Total Time (95% CI)', 'Memory Limit (MB)')
+        plot_efficiency(df_mem, 'memory_mb', 'efficiency_memory.png', 
+                        'Radix Sort Speedup vs Memory Limit')
+        
     if os.path.exists(INPUT_FILENAME): 
         os.remove(INPUT_FILENAME)
     if os.path.exists(OUTPUT_FILENAME): 
         os.remove(OUTPUT_FILENAME)
+
+
+def main():
+    compile_cpp()
+    run_benchmark()
+
 
 if __name__ == "__main__":
     main()
