@@ -7,7 +7,7 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
+import scipy
 
 EXECUTABLE = "./sorter"     
 
@@ -83,7 +83,6 @@ def run_test(size_mb, mem_mb, algo):
     cmd = [EXECUTABLE, INPUT_FILENAME, OUTPUT_FILENAME, str(mem_mb), algo]
     
     try:
-        # check=True raises an error if C++ returns != 0
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         time_taken = parse_time(result.stdout)
         
@@ -143,8 +142,7 @@ def run_batch_execution(scenario, size_mb, mem_mb, algo):
     mean = np.mean(times)
     std = np.std(times, ddof=1)
     
-    # Calculation for 95% Confidence Interval
-    t_crit = stats.t.ppf(0.975, len(times) - 1)
+    t_crit = scipy.stats.t.ppf(0.975, len(times) - 1)
     ci = t_crit * (std / np.sqrt(len(times)))
     
     print(" Done.")
@@ -190,7 +188,6 @@ def plot_execution_times(df, x_col, filename, title, xlabel):
     """
     plt.figure(figsize=(8, 6))
     
-    # Colors matching your image: blue for std, orange for radix
     colors = {'std': '#1f77b4', 'radix': '#ff7f0e'}
     
     for algo in ALGOS:
@@ -199,17 +196,14 @@ def plot_execution_times(df, x_col, filename, title, xlabel):
         y = subset['time_mean']
         ci = subset['time_ci']
 
-        # Main line with markers
         plt.plot(x, y, marker='o', label=algo, color=colors[algo], linewidth=2)
         
-        # Shaded Confidence Interval
         plt.fill_between(x, (y - ci), (y + ci), color=colors[algo], alpha=0.15)
 
     plt.title(title, fontsize=13, fontweight='bold')
     plt.xlabel(xlabel, fontsize=11)
     plt.ylabel("Seconds (s)", fontsize=11)
     
-    # Grid matching the reference image style
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.legend()
     
@@ -229,7 +223,6 @@ def run_benchmark():
     if df.empty:
         raise RuntimeError("Error while executing the benchmark.")
     
-    # Analysis for Scenario 1
     df_scale = df[df['scenario'] == 'scalability']
     if not df_scale.empty:
         plot_execution_times(df_scale, 'file_size_mb', 'scalability_time.png', 
@@ -237,7 +230,6 @@ def run_benchmark():
         plot_efficiency(df_scale, 'file_size_mb', 'efficiency_scalability.png', 
                         'Radix Sort Speedup vs Input Size')
 
-    # Analysis for Scenario 2
     df_mem = df[df['scenario'] == 'memory_impact']
     if not df_mem.empty:
         plot_execution_times(df_mem, 'memory_mb', 'memory_time.png', 
