@@ -23,7 +23,7 @@ RESULTS_CSV = os.path.join(RESULTS_DIR, "benchmark_data.csv")
 
 # Scenario 1: Scalability (Fixed Memory, Increasing File Size)
 # Testing file sizes from 100MB up to 1GB
-SCENARIO_SIZES = [100, 200, 500, 1000] 
+SCENARIO_SIZES = [100, 200, 500, 1000, 2000] 
 FIXED_MEMORY = 100                     
 
 # Scenario 2: Memory Impact (Fixed File Size, Increasing RAM)
@@ -35,7 +35,7 @@ SCENARIO_MEMORY = [50, 100, 200, 500, 1000]
 ALGOS = ["std", "radix"]
 
 # Number of times we are running the experiment
-NUM_RUNS = 5 
+NUM_RUNS = 10 
 
 
 def compile_cpp():
@@ -134,6 +134,7 @@ def run_batch_execution(scenario, size_mb, mem_mb, algo):
     
     times = []
     for run_idx in range(NUM_RUNS):
+        drop_cache()
         time_taken, throughput = run_test(size_mb, mem_mb, algo)
         if time_taken is not None:
             times.append(time_taken)
@@ -210,6 +211,11 @@ def plot_execution_times(df, x_col, filename, title, xlabel):
     plt.tight_layout()
     plt.savefig(os.path.join(RESULTS_DIR, filename), dpi=300)
     plt.close()
+
+
+def drop_cache():
+    subprocess.run(["sudo", "sh", "-c", "echo 3 > /proc/sys/vm/drop_caches"], check=True)
+    time.sleep(1)
 
 
 def run_benchmark():
