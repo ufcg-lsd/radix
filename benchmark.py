@@ -23,13 +23,13 @@ RESULTS_CSV = os.path.join(RESULTS_DIR, "benchmark_data.csv")
 
 # Scenario 1: Scalability (Fixed Memory, Increasing File Size)
 # Testing file sizes from 100MB up to 1GB
-SCENARIO_SIZES = [100, 200, 500, 1000, 2000] 
+SCENARIO_SIZES = [100, 200, 500, 1000] 
 FIXED_MEMORY = 100                     
 
 # Scenario 2: Memory Impact (Fixed File Size, Increasing RAM)
-# 500MB file with RAM varying from 50MB to 1GB
+# 500MB file with RAM varying from 50MB to 500MB 
 FIXED_FILE_SIZE = 500                  
-SCENARIO_MEMORY = [50, 100, 200, 500, 1000] 
+SCENARIO_MEMORY = [50, 100, 200, 500] 
 
 # Sorting algorithms
 ALGOS = ["std", "radix"]
