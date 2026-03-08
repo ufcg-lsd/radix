@@ -32,4 +32,3 @@ test:
 clean:
 	rm -f $(APP_BIN) $(BENCH_BIN)
 	rm -rf $(BUILD_DIR)
-	rm -f *.bin *.dat *.png results/*.png results/*.csv
