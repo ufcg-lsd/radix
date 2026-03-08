@@ -96,6 +96,10 @@ namespace external_sort {
             run_files.push_back(temp_name);
         }
 
+        cout << "RUN_SUMMARY "
+            << "runs=" << runCount << " " 
+            << "max_buffer_elems=" << max_elements << '\n';
+
         return run_files;
     }
 
