@@ -63,7 +63,9 @@ namespace external_sort {
 
         // Compute buffer size
         size_t safe_payload = (size_t) (this->memory_limit_bytes * SAFETY_MARGIN);
-        size_t max_elements = safe_payload / sizeof(double);
+        // limit Radix usage to make the comparison between the algorithms fair
+        size_t memory_usage_factor = (this->sort_strategy == RADIX_SORT) ? 3 : 1;
+        size_t max_elements = safe_payload / (memory_usage_factor *sizeof(double));
 
         vector<double> buffer;
         buffer.reserve(max_elements);
@@ -93,6 +95,10 @@ namespace external_sort {
             out.write(reinterpret_cast<char*>(buffer.data()), buffer.size() * sizeof(double));
             run_files.push_back(temp_name);
         }
+
+        cout << "RUN_SUMMARY "
+            << "runs=" << runCount << " " 
+            << "max_buffer_elems=" << max_elements << '\n';
 
         return run_files;
     }
