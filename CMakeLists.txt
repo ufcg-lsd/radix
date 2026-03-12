@@ -18,7 +18,9 @@ include_directories(src)
 add_executable(
   run_tests
   tests/radix_sort_tests.cpp
+  tests/external_sort_tests.cpp
   src/radix_sort.cpp
+  src/external_sort.cpp
 )
 
 target_link_libraries(
