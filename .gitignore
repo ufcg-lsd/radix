@@ -1,0 +1,19 @@
+# Ignorar a pasta de build inteira
+build/
+cmake-build-debug/
+bin/
+
+# Ignorar arquivos compilados soltos
+*.o
+*.out
+*.exe
+*.a
+*.so
+
+# Ignorar arquivos de IDE
+.vscode/
+.idea/
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
